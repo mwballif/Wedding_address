@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mitchell and Isabella</title>
+  <style>
+    @font-face {
+      font-family: 'Aujournuit';
+      src: url('aujournuit-main/fonts/Aujournuit-Regular.woff2') format('woff2'),
+           url('aujournuit-main/fonts/Aujournuit-Regular.woff') format('woff');
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Aujournuit';
+      src: url('aujournuit-main/fonts/Aujournuit-Airy.woff2') format('woff2'),
+           url('aujournuit-main/fonts/Aujournuit-Airy.woff') format('woff');
+      font-weight: 300;
+      font-style: normal;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      background-color: #F7F5F0;
+      font-family: 'Aujournuit', Georgia, serif;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding-left: 12vw;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 480px;
+      width: 100%;
+    }
+
+    .heading {
+      font-size: clamp(2.4rem, 5vw, 3.6rem);
+      font-weight: 300;
+      color: #1a1a1a;
+      letter-spacing: 0.01em;
+      line-height: 1.15;
+      margin-bottom: 1.8rem;
+    }
+
+    .step {
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      pointer-events: none;
+      position: absolute;
+    }
+
+    .step.active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+      position: relative;
+    }
+
+    .step.exiting {
+      opacity: 0;
+      transform: translateY(-6px);
+      pointer-events: none;
+      position: absolute;
+    }
+
+    .prompt {
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: #1a1a1a;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.6rem;
+    }
+
+    .input-line {
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: baseline;
+    }
+
+    /* Hidden input captures keystrokes */
+    .input-field {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 1px;
+      height: 1px;
+    }
+
+    /* Visible typed text */
+    .typed-text {
+      font-family: 'Aujournuit', Georgia, serif;
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: #1a1a1a;
+      letter-spacing: 0.06em;
+    }
+
+    /* Blinking cursor line */
+    .cursor {
+      display: inline-block;
+      width: 1px;
+      height: 0.85em;
+      background: #1a1a1a;
+      margin-left: 1px;
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    .hint {
+      margin-top: 0.7rem;
+      font-size: 0.68rem;
+      color: #999;
+      letter-spacing: 0.04em;
+    }
+
+    .confirmation {
+      font-size: 0.95rem;
+      font-weight: 300;
+      color: #1a1a1a;
+      line-height: 1.7;
+      letter-spacing: 0.01em;
+      font-style: italic;
+    }
+
+    .steps-wrapper {
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="steps-wrapper">
+
+    <!-- Step 1: Name -->
+    <div class="step active" id="step-name">
+      <p class="prompt">To send your address to Mitchell and Bella, kindly type your first and last name and press enter.</p>
+      <div class="input-line">
+        <input class="input-field" id="input-name" type="text" autocomplete="off" spellcheck="false" autofocus />
+        <span class="typed-text" id="typed-name"></span><span class="cursor"></span>
+      </div>
+    </div>
+
+    <!-- Step 2: Address -->
+    <div class="step" id="step-address">
+      <p class="prompt">And your mailing address.</p>
+      <div class="input-line">
+        <input class="input-field" id="input-address" type="text" autocomplete="off" spellcheck="false" />
+        <span class="typed-text" id="typed-address"></span><span class="cursor"></span>
+      </div>
+    </div>
+
+    <!-- Step 3: Confirmation -->
+    <div class="step" id="step-done">
+      <p class="confirmation" id="confirm-text"></p>
+    </div>
+
+  </div>
+</div>
+
+<!--
+  ─────────────────────────────────────────────────
+  BACKEND SETUP (one-time, ~3 minutes)
+  ─────────────────────────────────────────────────
+  1. Go to https://formspree.io and create a free account
+  2. Create a new form — use your email: mitchell@ironplow.org
+  3. Copy your form endpoint, it looks like:
+       https://formspree.io/f/xxxxxxxx
+  4. Replace the FORMSPREE_ENDPOINT placeholder below with that URL
+  5. Push to GitHub Pages — responses arrive in your email
+     and are downloadable as CSV from the Formspree dashboard.
+  ─────────────────────────────────────────────────
+-->
+
+<script>
+  const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xzdlbpqa';
+
+  const stepName    = document.getElementById('step-name');
+  const stepAddress = document.getElementById('step-address');
+  const stepDone    = document.getElementById('step-done');
+  const inputName   = document.getElementById('input-name');
+  const inputAddress= document.getElementById('input-address');
+  const typedName   = document.getElementById('typed-name');
+  const typedAddr   = document.getElementById('typed-address');
+  const confirmText = document.getElementById('confirm-text');
+
+  let guestName = '';
+
+  // Ensure cursor is visible immediately on load
+  window.addEventListener('load', () => inputName.focus());
+
+  // Sync hidden input value to visible text span
+  inputName.addEventListener('input', () => {
+    typedName.textContent = inputName.value;
+  });
+  inputAddress.addEventListener('input', () => {
+    typedAddr.textContent = inputAddress.value;
+  });
+
+  // Keep focus on hidden input when clicking anywhere in step
+  document.getElementById('step-name').addEventListener('click', () => inputName.focus());
+  document.getElementById('step-address').addEventListener('click', () => inputAddress.focus());
+
+  function transition(from, to, callback) {
+    from.classList.add('exiting');
+    from.classList.remove('active');
+    setTimeout(() => {
+      from.classList.remove('exiting');
+      to.classList.add('active');
+      if (callback) callback();
+    }, 520);
+  }
+
+  inputName.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const val = inputName.value.trim();
+      if (!val) return;
+      guestName = val;
+      transition(stepName, stepAddress, () => {
+        inputAddress.focus();
+      });
+    }
+  });
+
+  inputAddress.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+      const val = inputAddress.value.trim();
+      if (!val) return;
+
+      transition(stepAddress, stepDone, () => {
+        confirmText.textContent = 'Thank you, ' + guestName.split(' ')[0] + '.';
+      });
+
+      // Submit to Formspree
+      try {
+        await fetch(FORMSPREE_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ name: guestName, address: val }),
+        });
+      } catch (_) {
+        // Silent fail — response is recorded locally regardless
+      }
+
+      // Also save locally in case Formspree isn't configured yet
+      const existing = JSON.parse(localStorage.getItem('rsvp_responses') || '[]');
+      existing.push({ name: guestName, address: val, timestamp: new Date().toISOString() });
+      localStorage.setItem('rsvp_responses', JSON.stringify(existing));
+    }
+  });
+</script>
+
+</body>
+</html>
